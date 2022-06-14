@@ -65,6 +65,10 @@ At /etc/hosts file add ```<raspberry_ip> raspberrypi```
 -------------------------------------------------------------
 
 ## 3. Run the ROS2 Foxy  subscriber/publisher on the PC
+In the ROS2_sub_pub folder, is possible to find the necesary package to republish the ROS Noetic topics with ROS2 Foxy topics.
+
+To use it you have to: 
+
 Setup the environment variables of ros2 foxy
 ```
 source /opt/ros/foxy/setup.bash

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import division
 import numpy as np
@@ -15,11 +15,14 @@ from std_msgs.msg import Float64, Float64MultiArray, MultiArrayLayout, MultiArra
 from teraranger.cfg import EvoThermalConfig
 from dynamic_reconfigure.server import Server
 
+# import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
+
 
 class EvoThermal(object):
     def __init__(self):
         # ROS INIT
-        rospy.init_node("evo_thermal")
+        rospy.init_node("evo_thermal") 
         self.rgb_publisher = rospy.Publisher("teraranger_evo_thermal/rgb_image", Image, queue_size=1)
         self.raw_publisher = rospy.Publisher("teraranger_evo_thermal/raw_temp_array", Float64MultiArray, queue_size=1)
         self.ptat_publisher = rospy.Publisher("teraranger_evo_thermal/ptat", Float64, queue_size=1)
@@ -72,10 +75,12 @@ class EvoThermal(object):
             bytesize=serial.EIGHTBITS,
             timeout=1.0
         )
-
         self.port.isOpen()
         self.crc32 = crcmod.predefined.mkPredefinedCrcFun('crc-32-mpeg')
         self.crc8 = crcmod.predefined.mkPredefinedCrcFun('crc-8')
+
+        # self.cap = cv2.VideoCapture(0)
+
 
     def get_frame(self):
         got_frame = False
@@ -86,7 +91,7 @@ class EvoThermal(object):
             while not got_header:
                 if len(temp) < 2:  # Check for serial timeout
                     return None
-                if ord(temp[0]) == 13 and ord(temp[1]) == 0:
+                if (temp[0] == 13) and (temp[1] == 0):
                     got_header = True
                 else:
                     temp = temp[1:]
@@ -99,7 +104,7 @@ class EvoThermal(object):
 
             # Calculate CRC for frame (except CRC value and header)
             calculatedCRC = self.crc32(data[:2064])
-            data = unpack("H" * 1034, str(data))
+            data = unpack("H" * 1034, data)
             receivedCRC = (data[1032] & 0xFFFF) << 16
             receivedCRC |= data[1033] & 0xFFFF
             self.ptat = data[1024]
@@ -252,6 +257,11 @@ class EvoThermal(object):
         rgb_img_msg.header.stamp = rospy.Time.now()
         self.rgb_publisher.publish(rgb_img_msg)
 
+        # frame = self.cap.read()
+        # # frame = np.array(frame)
+        # cv2.imshow('frame', frame)
+        # plt.imshow(rgb)
+        # plt.show()
         # Publish temperatures array
         raw_temp_array = Float64MultiArray()
         raw_temp_array.layout.dim.append(MultiArrayDimension())
@@ -273,23 +283,24 @@ class EvoThermal(object):
     def send_command(self, command):
         self.port.flushInput()
         self.port.write(command)
+        # print(command.encode()) # 0 82 2 1 195 159
 
         # This loop discards buffered frames until a valid ACK frame is reached
-        temp_ack = self.port.read(4)
+        temp_ack = self.port.read(4) # 20 255 255 45
         got_ack = False
         while not got_ack:
             if len(temp_ack) < 4:  # Check for serial timeout
                 rospy.logwarn("Timeout when reading ACK")
                 return False
-            if ord(temp_ack[0]) == 20:
-                if self.crc8(temp_ack[:3]) == ord(temp_ack[3]):
+            if temp_ack[0] == 20:
+                if self.crc8(temp_ack[:3]) == temp_ack[3]:
                     got_ack = True
                     break
             temp_ack = temp_ack[1:]
             temp_ack += self.port.read(1)
 
         # Check if ACK or NACK
-        if ord(temp_ack[2]) == 0:
+        if temp_ack[2] == 0:
             return True
         else:
             rospy.logerr("Command refused by device")
@@ -297,7 +308,7 @@ class EvoThermal(object):
 
     def start_sensor(self):
         rospy.loginfo("Starting sensor output...")
-        res = self.send_command("\x00\x52\x02\x01\xDF")
+        res = self.send_command(b"\x00\x52\x02\x01\xDF")
         if res:
             rospy.loginfo("Sensor output started successfully")
             return True
@@ -307,7 +318,7 @@ class EvoThermal(object):
 
     def stop_sensor(self):
         rospy.loginfo("Stopping sensor output...")
-        res = self.send_command("\x00\x52\x02\x00\xD8")
+        res = self.send_command(b"\x00\x52\x02\x00\xD8")
         if res:
             rospy.loginfo("Sensor output stopped successfully")
             return True
@@ -326,7 +337,6 @@ class EvoThermal(object):
             if frame is not None:
                 temp_array = self.convert_frame(frame)
                 thermal_image = self.auto_scaling(temp_array)
-
                 self.publish(thermal_image, temp_array)
         else:
             if self.baudrate == 115200:  # Sending VCP stop when connected via USB

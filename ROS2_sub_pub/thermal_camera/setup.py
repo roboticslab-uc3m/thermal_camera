@@ -1,4 +1,6 @@
 from setuptools import setup
+import os
+from glob import glob
 
 package_name = 'thermal_camera'
 
@@ -10,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name), glob('launch/camera_launch.py'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_sub_pub = thermal_camera.camera_sub_pub:main'
+            'camera_sub_pub=thermal_camera.camera_sub_pub:main',
         ],
     },
 )

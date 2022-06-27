@@ -77,3 +77,13 @@ Run the ros2 node to republish the topics on ros2.
 ros2 run thermal_camera camera_sub_pub
 ```
 
+## 4. Rosbag thermal raw data
+In the ROS2_sub_pub folder, is possible to find the necesary package to save the raw_temp_array topic values on a rosbag file to replay them when it is necessary. It is called "_simple_bag_recorder.cpp_"
+
+Moreover, on the thermal_camera folder, there is a launch file to run the _camera_sub_pub_ node and the _simple_bag_recorder_ node. 
+To use it, you can run: 
+```
+ros2 launch thermal_camera camera_launch.py data_name:=<bag_file_name>
+```
+
+This command will store the ```raw_temp_array``` topic on the folder data_saved/<bag_file_name>

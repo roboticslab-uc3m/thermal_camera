@@ -1,4 +1,4 @@
-# ROS Noetic package for TeraRanger EVO 33  
+# ROS Noetic package for TeraRanger EVO 33   
 This package allows to use teraranger nodes for ROS Noetic (python 3) on a Raspberry Pi Model 3B
 
 ## Dependencies
